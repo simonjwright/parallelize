@@ -1,0 +1,16 @@
+name = "parallel"
+description = "Execute multiple commands in parallel"
+version = "0.1.0-dev"
+
+authors = ["Simon Wright"]
+maintainers = ["Simon Wright <simon@pushface.org>"]
+maintainers-logins = ["simonjwright"]
+licenses = "GPL-3.0-or-later"
+website = ""
+tags = ["parallel", "execution"]
+
+executables = ["parallel"]
+
+[build-switches]
+"*".contracts = "yes"
+"*".ada_version = "ada2022"
