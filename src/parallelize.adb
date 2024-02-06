@@ -1,4 +1,5 @@
 with Ada.Containers.Ordered_Maps;
+with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO; use Ada.Text_IO;
@@ -6,6 +7,7 @@ with Ada.Unchecked_Conversion;
 with Commands;
 with GNAT.OS_Lib;
 with GNAT.Strings;
+with System.Multiprocessors;
 
 procedure Parallelize is
 
@@ -44,19 +46,20 @@ procedure Parallelize is
 
    type Job is record
       Command          : Ada.Strings.Unbounded.Unbounded_String;
-      Not_Executable   : Boolean := False;
+      Executable       : Boolean := False;
       Started          : Boolean := False;
-      Complete         : Boolean := False;
+      Finished         : Boolean := False;
       Status           : Boolean := False;
+      Complete         : Boolean := False;
       Output_File_Name : GNAT.OS_Lib.String_Access;
    end record;
 
    subtype Job_Index is Positive;
 
-   package Job_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Job_Index,
+   package Job_Vectors is new Ada.Containers.Vectors
+     (Index_Type     => Job_Index,
       Element_Type => Job);
-   use Job_Maps;
+   use Job_Vectors;
 
    function "<" (L, R : GNAT.OS_Lib.Process_Id) return Boolean;
 
@@ -67,9 +70,9 @@ procedure Parallelize is
 
    procedure Start_Processes;
 
-   Jobs      : Job_Maps.Map;
+   Jobs      : Job_Vectors.Vector;
    Processes : Process_Maps.Map;
-   Max_Processes : Ada.Containers.Count_Type := 4;
+   Max_Processes : Ada.Containers.Count_Type;
    use type Ada.Containers.Count_Type;
 
    function "<" (L, R : GNAT.OS_Lib.Process_Id) return Boolean
@@ -104,8 +107,8 @@ procedure Parallelize is
                if Executable = null then
                   Put_Line (Standard_Error,
                             "'" & Command & "' not executable");
-                  The_Job.Not_Executable := True;
                else
+                  The_Job.Executable := True;
                   GNAT.OS_Lib.Create_Temp_Output_File
                     (Unused_FD, The_Job.Output_File_Name);
                   Pid := GNAT.OS_Lib.Non_Blocking_Spawn
@@ -119,8 +122,10 @@ procedure Parallelize is
                                "couldn't spawn '" & Whole_Command & "'");
                      GNAT.Strings.Free (The_Job.Output_File_Name);
                   else
+                     Put_Line (Standard_Error,
+                               "starting '" & Whole_Command & "'");
                      Processes.Insert (Key      => Pid,
-                                       New_Item => Job_Maps.Key (J));
+                                       New_Item => Job_Vectors.To_Index (J));
                   end if;
                   GNAT.Strings.Free (Executable);
                end if;  -- job was executable
@@ -131,6 +136,9 @@ procedure Parallelize is
 
 begin
 
+   Max_Processes
+     := Ada.Containers.Count_Type (System.Multiprocessors.Number_Of_CPUs);
+
    Read_Commands :
    loop
       begin
@@ -138,14 +146,9 @@ begin
          declare
             Input : constant String
               := Ada.Strings.Fixed.Trim (Get_Line, Ada.Strings.Both);
-            Job_Number : constant Positive
-              := (if Jobs.Is_Empty
-                  then 1
-                  else Jobs.Last_Key + 1);
          begin
             exit Read_Commands when Input'Length = 0;
-            Jobs.Insert (Key      => Job_Number,
-                         New_Item => Job'(Command => +Input,
+            Jobs.Append (New_Item => Job'(Command => +Input,
                                           others  => <>));
          end Read_Command;
       exception
@@ -155,32 +158,60 @@ begin
    end loop Read_Commands;
 
    Run :
-   loop
-      Find_Finished_Process :
-      declare
-         Finished_Pid : GNAT.OS_Lib.Process_Id;
-         use type GNAT.OS_Lib.Process_Id;
-         Job_Status : Boolean;
-      begin
-         Start_Processes;
-         GNAT.OS_Lib.Wait_Process (Pid => Finished_Pid, Success => Job_Status);
-         exit Run when Finished_Pid = GNAT.OS_Lib.Invalid_Pid; -- XXX
-         Handle_Completed_Job :
+   declare
+      Last_Job_Output : Natural := Job_Index'First - 1;
+   begin
+      Monitor_Process_Completion :
+      loop
+         Find_Finished_Process :
          declare
-            Job_ID : constant Job_Index := Processes (Finished_Pid);
-            The_Job : Job renames Jobs (Job_ID);
-            File : Ada.Text_IO.File_Type;
+            Finished_Pid : GNAT.OS_Lib.Process_Id;
+            use type GNAT.OS_Lib.Process_Id;
+            Job_Status : Boolean;
          begin
-            Processes.Delete (Finished_Pid);
-            Open (File, Name => The_Job.Output_File_Name.all, Mode => In_File);
-            while not End_Of_File (File) loop
-               Put_Line (Get_Line (File));
-            end loop;
-            Delete (File);
-            GNAT.Strings.Free (The_Job.Output_File_Name);
-            The_Job.Complete := True;
-         end Handle_Completed_Job;
-      end Find_Finished_Process;
-   end loop Run;
+            Start_Processes;
+            GNAT.OS_Lib.Wait_Process (Pid     => Finished_Pid,
+                                      Success => Job_Status);
+            exit Monitor_Process_Completion
+            when Finished_Pid = GNAT.OS_Lib.Invalid_Pid;
+            Handle_Completed_Job :
+            declare
+               Job_ID : constant Job_Index := Processes (Finished_Pid);
+               The_Job : Job renames Jobs (Job_ID);
+            begin
+               Put_Line (Standard_Error,
+                         "finished '" & (+The_Job.Command) & "'");
+               The_Job.Status := Job_Status;
+               The_Job.Finished := True;
+               Processes.Delete (Finished_Pid);
+            end Handle_Completed_Job;
+            Output_Completed_Jobs_In_Order :
+            for J in Last_Job_Output + 1 .. Jobs.Last_Index loop
+               if Jobs (J).Executable then
+                  exit Output_Completed_Jobs_In_Order
+                  when not Jobs (J).Finished;
+                  Last_Job_Output := J;
+                  Output_Job :
+                  declare
+                     The_Job : Job renames Jobs (J);
+                     File : Ada.Text_IO.File_Type;
+                  begin
+                     Open (File,
+                           Name => The_Job.Output_File_Name.all,
+                           Mode => In_File);
+                     while not End_Of_File (File) loop
+                        Put_Line (Get_Line (File));
+                     end loop;
+                     Delete (File);
+                     GNAT.Strings.Free (The_Job.Output_File_Name);
+                     The_Job.Complete := True;
+                     Put_Line (Standard_Error,
+                               "completed '" & (+The_Job.Command) & "'");
+                  end Output_Job;
+               end if;
+            end loop Output_Completed_Jobs_In_Order;
+         end Find_Finished_Process;
+      end loop Monitor_Process_Completion;
+   end Run;
 
 end Parallelize;
