@@ -7,7 +7,7 @@ with Commands;
 with GNAT.OS_Lib;
 with GNAT.Strings;
 
-procedure parallel is
+procedure Parallelize is
 
    --  We need to keep info about a parallel Job: at least the Pid of
    --  the process running it, and the name of the file receiving the
@@ -183,37 +183,4 @@ begin
       end Find_Finished_Process;
    end loop Run;
 
-   --  Process_Command :
-   --  declare
-   --     Command : constant String
-   --       := Commands.Command_Part (Input);
-   --     Executable : GNAT.OS_Lib.String_Access
-   --       := GNAT.OS_Lib.Locate_Exec_On_Path (Command);
-   --     Args : constant String
-   --       := Commands.Argument_Part (Of_String => Input);
-   --     use type GNAT.OS_Lib.String_Access;
-   --  begin
-   --     if Executable = null then
-   --        Put_Line ("'" & Command & "' is not executable");
-   --     else
-   --        Put_Line ("cmd: '" & Command & "', args: '" & Args & "'");
-   --        Id := GNAT.OS_Lib.Non_Blocking_Spawn
-   --          (Program_Name => Executable.all,
-   --           Args => GNAT.OS_Lib.Argument_String_To_List (Args).all);
-   --        if Id = GNAT.OS_Lib.Invalid_Pid then
-   --           Put_Line ("couldn't spawn");
-   --        else
-   --           Put_Line ("the spawned pid: " & Id'Image);
-   --        end if;
-   --        GNAT.Strings.Free (Executable);
-   --     end if;
-   --  end Process_Command;
-   --  Put_Line ("waiting ...");
-   --  Waiting :
-   --  loop
-   --     GNAT.OS_Lib.Wait_Process (Pid => Finished_Pid, Success => Success);
-   --     exit Waiting when Finished_Pid = GNAT.OS_Lib.Invalid_Pid;
-   --     Put_Line ("finished pid: " & Finished_Pid'Image
-   --               & ", status: " & Success'Image);
-   --  end loop Waiting;
-end parallel;
+end Parallelize;

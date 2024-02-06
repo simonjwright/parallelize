@@ -1,4 +1,4 @@
-name = "parallel"
+name = "parallelize"
 description = "Execute multiple commands in parallel"
 version = "0.1.0-dev"
 
@@ -9,7 +9,7 @@ licenses = "GPL-3.0-or-later"
 website = ""
 tags = ["parallel", "execution"]
 
-executables = ["parallel"]
+executables = ["parallelize"]
 
 [build-switches]
 "*".contracts = "yes"
