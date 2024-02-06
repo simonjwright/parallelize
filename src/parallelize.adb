@@ -1,3 +1,6 @@
+--  Copyright (C) 2024 Simon Wright <simon@pushface.org>
+--  Licence: Apache 2.0
+
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
