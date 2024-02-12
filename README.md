@@ -23,8 +23,7 @@ cat alire.toml
 loc src/parallelize.adb
 sh loc src/*.ad?
 ```
-where `loc` is an executable script that reports the number of lines of Ada code in Ada source files,
-the run `bin/parallelize -v <simple.dat` produces the output
+where [`loc`](#loc) is an executable script that reports the number of lines of Ada code in Ada source files, the run `bin/parallelize -v <simple.dat` produces the output
 ```none
 $ bin/parallelize -v <simple.dat
 starting 'sleep 5'
@@ -62,4 +61,17 @@ src/commands.ads       3
 src/parallelize.adb     111
 total loc 127
 completed 'sh loc src/*.ad?'
+```
+----
+#### <a name="loc">LOC script</a> ####
+
+```shell
+#!/bin/bash -f
+t=0
+for f in $*; do
+    n=`sed -e "s/\".*\"//" -e "s/--.*//" <$f | tr -Cd \; | wc -c`
+    t=`expr $t + $n`
+    echo "$f$n"
+done
+echo "total loc $t"
 ```
