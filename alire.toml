@@ -1,6 +1,6 @@
 name = "parallelize"
 description = "Execute multiple commands in parallel"
-version = "0.1.0-dev"
+version = "1.0.0"
 
 authors = ["Simon Wright"]
 maintainers = ["Simon Wright <simon@pushface.org>"]
@@ -12,5 +12,4 @@ tags = ["parallel", "execution"]
 executables = ["parallelize"]
 
 [build-switches]
-"*".contracts = "yes"
-"*".ada_version = "ada2022"
+development.contracts = "yes"

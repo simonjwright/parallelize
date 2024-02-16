@@ -26,19 +26,24 @@ sh loc src/*.ad?
 where [`loc`](#loc) is an executable script that reports the number of lines of Ada code in Ada source files, the run `bin/parallelize -v <simple.dat` produces the output
 ```none
 $ bin/parallelize -v <simple.dat
+read 'sleep 5'
+read 'foo'
+read 'cat alire.toml'
+read 'loc src/parallelize.adb'
+read 'sh loc src/*.ad?'
 starting 'sleep 5'
 'foo' not executable
 starting 'cat alire.toml'
 starting 'loc src/parallelize.adb'
 starting 'sh loc src/*.ad?'
 finished 'cat alire.toml'
-finished 'loc src/parallelize.adb'
 finished 'sh loc src/*.ad?'
+finished 'loc src/parallelize.adb'
 finished 'sleep 5'
 completed 'sleep 5'
 name = "parallelize"
 description = "Execute multiple commands in parallel"
-version = "0.1.0-dev"
+version = "1.0.0"
 
 authors = ["Simon Wright"]
 maintainers = ["Simon Wright <simon@pushface.org>"]
@@ -50,8 +55,7 @@ tags = ["parallel", "execution"]
 executables = ["parallelize"]
 
 [build-switches]
-"*".contracts = "yes"
-"*".ada_version = "ada2022"
+development.contracts = "yes"
 completed 'cat alire.toml'
 src/parallelize.adb     111
 total loc 111

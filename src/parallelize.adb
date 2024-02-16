@@ -3,7 +3,6 @@
 
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
-with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
@@ -192,6 +191,7 @@ begin
                 (Ada.Text_IO.Get_Line, Ada.Strings.Both);
          begin
             exit Read_Commands when Input'Length = 0;
+            Log ("read '" & Input & "'");
             Jobs.Append (New_Item => Job'(Command => +Input,
                                           others  => <>));
          end Read_Command;
