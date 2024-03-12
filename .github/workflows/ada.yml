@@ -1,0 +1,38 @@
+name: parallelize-ci
+
+on:
+  push:
+    branches:
+    - '*'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  alire:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+    steps:
+    -
+      name: Checkout
+      uses: actions/checkout@v4
+    -
+      name: Set up Alire
+      uses: alire-project/setup-alire@v2
+      with:
+        version: nightly
+    -
+      name: Install toolchain
+      run: |
+        alr --non-interactive config --global --set toolchain.assistant false
+        alr --non-interactive toolchain --select gnat_native
+        alr --non-interactive toolchain --select gprbuild
+    -
+      name: Build
+      run: |
+        alr --non-interactive build
